@@ -2522,223 +2522,164 @@ function Luna:CreateWindow(WindowSettings)
 	local FirstTab = true
 
 	function Window:CreateHomeTab(HomeTabSettings)
-	    HomeTabSettings = Kwargify({
-	        Icon = 1,
-	        SupportedExecutors = {"Wave", "Delta", "Solara", "Fluxus"},
-	        DiscordInvite = "noinvitelink"
-	    }, HomeTabSettings or {})
-	
-	    local HomeTab = {}
-	
-	    local HomeTabButton = Navigation.Tabs.Home
-	    HomeTabButton.Visible = true
-	    if HomeTabSettings.Icon == 2 then
-	        HomeTabButton.ImageLabel.Image = GetIcon("dashboard", "Material")
-	    end
-	
-	    local HomeTabPage = Elements.Home
-	    HomeTabPage.Visible = true
-	
-	    function HomeTab:Activate()
-	        tween(HomeTabButton.ImageLabel, {ImageColor3 = Color3.fromRGB(255,255,255)})
-	        tween(HomeTabButton, {BackgroundTransparency = 0})
-	        tween(HomeTabButton.UIStroke, {Transparency = 0.41})
-	
-	        Elements.UIPageLayout:JumpTo(HomeTabPage)
-	
-	        task.wait(0.05)
-	
-	        for _, OtherTabButton in ipairs(Navigation.Tabs:GetChildren()) do
-	            if OtherTabButton.Name ~= "InActive Template" and OtherTabButton.ClassName == "Frame" and OtherTabButton ~= HomeTabButton then
-	                tween(OtherTabButton.ImageLabel, {ImageColor3 = Color3.fromRGB(221,221,221)})
-	                tween(OtherTabButton, {BackgroundTransparency = 1})
-	                tween(OtherTabButton.UIStroke, {Transparency = 1})
-	            end
-	        end
-	
-	        Window.CurrentTab = "Home"
-	    end
-	
-	    HomeTab:Activate()
-	    FirstTab = false
-	    HomeTabButton.Interact.MouseButton1Click:Connect(function()
-	        HomeTab:Activate()
-	    end)
-	
-	    local GameDatabase = {
-	        ["Blox Fruits"] = {2753915549, 4442272183},
-	        ["Murder Mystery 2"] = {142823291},
-	        ["Pet Simulator X"] = {6284583030},
-	        ["Brookhaven"] = {4924922222},
-	        ["Arsenal"] = {286090429},
-	        ["Da Hood"] = {2788229376},
-	        ["Adopt Me"] = {920587237},
-	        ["Jailbreak"] = {606849621},
-	        ["Tower Defense Simulator"] = {3260590327},
-	        ["Anime Fighters Simulator"] = {8304191830}
-	    }
-	
-	    local function GetCurrentGame()
-	        local currentPlaceId = game.PlaceId
-	        for gameName, placeIds in pairs(GameDatabase) do
-	            for _, placeId in ipairs(placeIds) do
-	                if placeId == currentPlaceId then
-	                    return gameName
-	                end
-	            end
-	        end
-	        return nil
-	    end
-	
-	    local function GetAccountAge()
-	        local days = Player.AccountAge
-	        if days >= 365 then
-	            return math.floor(days / 365) .. " years"
-	        elseif days >= 30 then
-	            return math.floor(days / 30) .. " months"
-	        else
-	            return days .. " days"
-	        end
-	    end
-	
-	    local DetectedGame = GetCurrentGame()
-	
-	    HomeTabPage.icon.ImageLabel.Image = Players:GetUserThumbnailAsync(Players.LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
-	    HomeTabPage.player.Text.Text = "Hello, " .. Players.LocalPlayer.DisplayName
-	    HomeTabPage.player.user.Text = Players.LocalPlayer.Name .. " | " .. WindowSettings.Name
-	
-	    local ExecutorDisplay = isStudio and "Roblox Studio" or (identifyexecutor and identifyexecutor() or "Unknown")
-	    HomeTabPage.detailsholder.dashboard.Client.Title.Text = ExecutorDisplay
-	
-	    local isSupported = false
-	    for i, v in pairs(HomeTabSettings.SupportedExecutors) do
-	        if isStudio then 
-	            HomeTabPage.detailsholder.dashboard.Client.Subtitle.Text = "Debugging Mode Active"
-	            isSupported = true
-	            break 
-	        end
-	        if identifyexecutor and v == identifyexecutor() then
-	            HomeTabPage.detailsholder.dashboard.Client.Subtitle.Text = "Executor Supported ✓"
-	            isSupported = true
-	            break
-	        end
-	    end
-	    
-	    if not isSupported and not isStudio then
-	        HomeTabPage.detailsholder.dashboard.Client.Subtitle.Text = "Executor Not Officially Supported"
-	    end
-	
-	    if HomeTabPage.detailsholder.dashboard:FindFirstChild("Game") then
-	        if DetectedGame then
-	            HomeTabPage.detailsholder.dashboard.Game.Title.Text = DetectedGame
-	            HomeTabPage.detailsholder.dashboard.Game.Subtitle.Text = "Game Detected ✓"
-	        else
-	            HomeTabPage.detailsholder.dashboard.Game.Title.Text = "Unknown Game"
-	            HomeTabPage.detailsholder.dashboard.Game.Subtitle.Text = "PlaceId: " .. tostring(game.PlaceId)
-	        end
-	    end
-	
-	    if HomeTabPage.detailsholder.dashboard:FindFirstChild("PlayerInfo") then
-	        HomeTabPage.detailsholder.dashboard.PlayerInfo.AccountAge.Value.Text = GetAccountAge()
-	        HomeTabPage.detailsholder.dashboard.PlayerInfo.Premium.Value.Text = Player.MembershipType == Enum.MembershipType.Premium and "Yes" or "No"
-	        HomeTabPage.detailsholder.dashboard.PlayerInfo.UserId.Value.Text = tostring(Player.UserId)
-	    end
-	
-	    HomeTabPage.detailsholder.dashboard.Discord.Interact.MouseButton1Click:Connect(function()
-	        if setclipboard then
-	            setclipboard("https://discord.gg/" .. HomeTabSettings.DiscordInvite)
-	        end
-	        if request then
-	            request({
-	                Url = 'http://127.0.0.1:6463/rpc?v=1',
-	                Method = 'POST',
-	                Headers = {
-	                    ['Content-Type'] = 'application/json',
-	                    Origin = 'https://discord.com'
-	                },
-	                Body = HttpService:JSONEncode({
-	                    cmd = 'INVITE_BROWSER',
-	                    nonce = HttpService:GenerateGUID(false),
-	                    args = {code = HomeTabSettings.DiscordInvite}
-	                })
-	            })
-	        end
-	    end)
-	
-	    local friendsCooldown = 0
-	    
-	    local function getPing() 
-	        return math.clamp(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue(), 10, 700) 
-	    end
-	
-	    local function checkFriends()
-	        if friendsCooldown == 0 then
-	            friendsCooldown = 25
-	
-	            local friendsInTotal = 0
-	            local onlineFriends = 0 
-	            local friendsInGame = 0 
-	
-	            pcall(function()
-	                local list = Players:GetFriendsAsync(Player.UserId)
-	                while true do
-	                    for _, data in list:GetCurrentPage() do
-	                        friendsInTotal = friendsInTotal + 1
-	                        if Players:FindFirstChild(data.Username) then
-	                            friendsInGame = friendsInGame + 1
-	                        end
-	                    end
-	                    if list.IsFinished then
-	                        break
-	                    else 
-	                        list:AdvanceToNextPageAsync()
-	                    end
-	                end
-	            end)
-	
-	            pcall(function()
-	                for i, v in pairs(Player:GetFriendsOnline()) do
-	                    onlineFriends = onlineFriends + 1
-	                end
-	            end)
-	
-	            HomeTabPage.detailsholder.dashboard.Friends.All.Value.Text = tostring(friendsInTotal) .. " friends"
-	            HomeTabPage.detailsholder.dashboard.Friends.Offline.Value.Text = tostring(friendsInTotal - onlineFriends) .. " friends"
-	            HomeTabPage.detailsholder.dashboard.Friends.Online.Value.Text = tostring(onlineFriends) .. " friends"
-	            HomeTabPage.detailsholder.dashboard.Friends.InGame.Value.Text = tostring(friendsInGame) .. " friends"
-	        else
-	            friendsCooldown = friendsCooldown - 1
-	        end
-	    end
-	
-	    local function format(Int)
-	        return string.format("%02i", Int)
-	    end
-	
-	    local function convertToHMS(Seconds)
-	        local Minutes = (Seconds - Seconds % 60) / 60
-	        Seconds = Seconds - Minutes * 60
-	        local Hours = (Minutes - Minutes % 60) / 60
-	        Minutes = Minutes - Hours * 60
-	        return format(Hours) .. ":" .. format(Minutes) .. ":" .. format(Seconds)
-	    end
-	
-	    coroutine.wrap(function()
-	        while task.wait(1) do
-	            HomeTabPage.detailsholder.dashboard.Server.Players.Value.Text = #Players:GetPlayers() .. " playing"
-	            HomeTabPage.detailsholder.dashboard.Server.MaxPlayers.Value.Text = Players.MaxPlayers .. " max players"
-	            HomeTabPage.detailsholder.dashboard.Server.Latency.Value.Text = isStudio and tostring(math.round((Players.LocalPlayer:GetNetworkPing() * 2) / 0.01)) .. "ms" or tostring(math.floor(getPing())) .. "ms"
-	            HomeTabPage.detailsholder.dashboard.Server.Time.Value.Text = convertToHMS(math.floor(time()))
-	            
-	            pcall(function()
-	                HomeTabPage.detailsholder.dashboard.Server.Region.Value.Text = Localization:GetCountryRegionForPlayerAsync(Players.LocalPlayer)
-	            end)
-	
-	            checkFriends()
-	        end
-	    end)()
-	
-	    return HomeTab
+
+		HomeTabSettings = Kwargify({
+			Icon = 1,
+			SupportedExecutors = {"Vega X", "Delta", "Nihon", "Xeno"}, -- THESE DEFAULTS ARE PLACEHOLDERS!! I DO NOT ADVERTISE THESE, THEY ARE JUS THE FIRST THAT CAME TO MIND. I HAVE NO IDEA WHETHER THEYA RE RATS (they prob are) AND IM NOT RESPONSIBLE IF U GET VIRUSES FROM INSTALLING AFTER SEEING THIS LIST
+			DiscordInvite = "noinvitelink" -- The disvord invite link. Do not include the link so for example if my invite was discord.gg/nebula I would put nebula
+		}, HomeTabSettings or {})
+
+		local HomeTab = {}
+
+		local HomeTabButton = Navigation.Tabs.Home
+		HomeTabButton.Visible = true
+		if HomeTabSettings.Icon == 2 then
+			HomeTabButton.ImageLabel.Image = GetIcon("dashboard", "Material")
+		end
+
+		local HomeTabPage = Elements.Home
+		HomeTabPage.Visible = true
+
+		function HomeTab:Activate()
+			tween(HomeTabButton.ImageLabel, {ImageColor3 = Color3.fromRGB(255,255,255)})
+			tween(HomeTabButton, {BackgroundTransparency = 0})
+			tween(HomeTabButton.UIStroke, {Transparency = 0.41})
+
+			Elements.UIPageLayout:JumpTo(HomeTabPage)
+
+			task.wait(0.05)
+
+			for _, OtherTabButton in ipairs(Navigation.Tabs:GetChildren()) do
+				if OtherTabButton.Name ~= "InActive Template" and OtherTabButton.ClassName == "Frame" and OtherTabButton ~= HomeTabButton then
+					tween(OtherTabButton.ImageLabel, {ImageColor3 = Color3.fromRGB(221,221,221)})
+					tween(OtherTabButton, {BackgroundTransparency = 1})
+					tween(OtherTabButton.UIStroke, {Transparency = 1})
+				end
+
+			end
+
+			Window.CurrentTab = "Home"
+		end
+
+		HomeTab:Activate()
+		FirstTab = false
+		HomeTabButton.Interact.MouseButton1Click:Connect(function()
+			HomeTab:Activate()
+		end)
+
+
+		HomeTabPage.icon.ImageLabel.Image = Players:GetUserThumbnailAsync(Players.LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+		HomeTabPage.player.Text.Text = "Hello, " .. Players.LocalPlayer.DisplayName
+		HomeTabPage.player.user.Text = Players.LocalPlayer.Name .. " - ".. WindowSettings.Name
+
+		HomeTabPage.detailsholder.dashboard.Client.Title.Text = (isStudio and "Debugging (Studio)" or identifyexecutor()) or "Your Executor Does Not Support identifyexecutor."
+		for i,v in pairs(HomeTabSettings.SupportedExecutors) do
+			if isStudio then HomeTabPage.detailsholder.dashboard.Client.Subtitle.Text = "Luna Interface Suite - Debugging Mode" break end
+			if v == identifyexecutor() then
+				HomeTabPage.detailsholder.dashboard.Client.Subtitle.Text = "Your Executor Supports This Script."
+				break
+			else
+				HomeTabPage.detailsholder.dashboard.Client.Subtitle.Text = "Your Executor Isn't Officialy Supported By This Script."
+				break
+			end
+		end
+
+		-- Stolen From Sirius Stuff Begins Here
+
+		HomeTabPage.detailsholder.dashboard.Discord.Interact.MouseButton1Click:Connect(function()
+			setclipboard(tostring("https://discord.gg/"..HomeTabSettings.DiscordInvite)) -- Hunter if you see this I added copy also was too lazy to send u msg
+			if request then
+				request({
+					Url = 'http://127.0.0.1:6463/rpc?v=1',
+					Method = 'POST',
+					Headers = {
+						['Content-Type'] = 'application/json',
+						Origin = 'https://discord.com'
+					},
+					Body = HttpService:JSONEncode({
+						cmd = 'INVITE_BROWSER',
+						nonce = HttpService:GenerateGUID(false),
+						args = {code = HomeTabSettings.DiscordInvite}
+					})
+				})
+			end
+		end)
+
+		local friendsCooldown = 0
+		local function getPing() return math.clamp(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue(), 10, 700) end
+
+		local function checkFriends()
+			if friendsCooldown == 0 then
+
+				friendsCooldown = 25
+
+				local playersFriends = {}
+				local friendsInTotal = 0
+				local onlineFriends = 0 
+				local friendsInGame = 0 
+
+				local list = Players:GetFriendsAsync(Player.UserId)
+				while true do -- loop through all the pages
+					for _, data in list:GetCurrentPage() do
+						friendsInTotal +=1
+						table.insert(playersFriends, Data)
+					end
+
+					if list.IsFinished then
+						-- stop the loop since this is the last page
+						break
+					else 
+						-- go to the next page
+						list:AdvanceToNextPageAsync()
+					end
+				end
+				for i, v in pairs(Player:GetFriendsOnline()) do
+					onlineFriends += 1
+				end
+
+				for i,v in pairs(playersFriends) do
+					if Players:FindFirstChild(v.Username) then
+						friendsInGame = friendsInGame + 1
+					end
+				end
+
+				HomeTabPage.detailsholder.dashboard.Friends.All.Value.Text = tostring(friendsInTotal).." friends"
+				HomeTabPage.detailsholder.dashboard.Friends.Offline.Value.Text = tostring(friendsInTotal - onlineFriends).." friends"
+				HomeTabPage.detailsholder.dashboard.Friends.Online.Value.Text = tostring(onlineFriends).." friends"
+				HomeTabPage.detailsholder.dashboard.Friends.InGame.Value.Text = tostring(friendsInGame).." friends"
+
+			else
+				friendsCooldown -= 1
+			end
+		end
+
+		local function format(Int)
+			return string.format("%02i", Int)
+		end
+
+		local function convertToHMS(Seconds)
+			local Minutes = (Seconds - Seconds%60)/60
+			Seconds = Seconds - Minutes*60
+			local Hours = (Minutes - Minutes%60)/60
+			Minutes = Minutes - Hours*60
+			return format(Hours)..":"..format(Minutes)..":"..format(Seconds)
+		end
+
+		coroutine.wrap(function()
+			while task.wait() do
+
+				HomeTabPage.detailsholder.dashboard.Server.Players.Value.Text = #Players:GetPlayers().." playing"
+				HomeTabPage.detailsholder.dashboard.Server.MaxPlayers.Value.Text = Players.MaxPlayers.." players can join this server"
+
+				HomeTabPage.detailsholder.dashboard.Server.Latency.Value.Text = isStudio and tostring(math.round((Players.LocalPlayer:GetNetworkPing() * 2 ) / 0.01)) .."ms" or tostring(math.floor(getPing()) .."ms")
+
+				HomeTabPage.detailsholder.dashboard.Server.Time.Value.Text = convertToHMS(time())
+
+				HomeTabPage.detailsholder.dashboard.Server.Region.Value.Text = Localization:GetCountryRegionForPlayerAsync(Players.LocalPlayer)
+
+				checkFriends()
+			end
+		end)()
 	end
 
 	function Window:CreateTab(TabSettings)
